@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-10-08T09:27:04.800Z",
+  "fixtureData": true,
+  "businessRoles": [
+    "admin",
+    "agent"
+  ],
+  "legacyRoleAccess": "blocked; reassignment required",
+  "checks": [
+    "Only Admin and Agent dashboard layouts render",
+    "Retired role cannot render a dashboard even if an old API returns permissions",
+    "Business team summary and filters contain two roles",
+    "Owner is grouped under business Admin",
+    "Invitation role selector contains exactly Admin and Agent",
+    "Admin invitation submits the correct workspace role",
+    "Admin and Agent desktop, mobile, and dark layouts verified",
+    "No page errors or horizontal body overflow"
+  ],
+  "pageErrors": [],
+  "serverTests": "205 passed",
+  "clientTests": "56 passed",
+  "typecheck": "passed",
+  "productionBuild": "passed",
+  "crmFilesChecked": 661,
+  "crmChanges": []
+}

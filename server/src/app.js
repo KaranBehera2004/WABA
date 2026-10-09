@@ -1,0 +1,52 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import authRoutes from './routes/auth.js';
+import workspaceRoutes from './routes/workspaces.js';
+import dataRoutes from './routes/data.js';
+import smartpingRoutes from './routes/smartping.js';
+import { SmartpingError } from './services/smartping.js';
+import superadminRoutes from './routes/superadmin.js';
+import { auditAdminChanges } from './middleware/superadmin.js';
+import { businessWallet } from './routes/wallet.js';
+import businessRoutes from './routes/business.js';
+import conversationRoutes from './routes/conversations.js';
+import businessReportRoutes from './routes/businessReports.js';
+import businessCampaignRoutes from './routes/businessCampaigns.js';
+import businessSettingsRoutes from './routes/businessSettings.js';
+import businessAutomationRoutes from './routes/businessAutomations.js';
+import { auditBusinessChanges } from './middleware/businessAudit.js';
+
+const app = express();
+app.disable('x-powered-by');
+app.use(helmet());
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true, exposedHeaders: ['Content-Disposition'] }));
+app.use(express.json({ limit: '1mb' }));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { skip: req => req.path.startsWith('/api/integrations/smartping/events/') }));
+
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'waba-api' }));
+app.use('/api', auditAdminChanges);
+app.use('/api', auditBusinessChanges);
+app.use('/api/superadmin', superadminRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/workspaces', workspaceRoutes);
+app.use('/api/business', businessRoutes);
+app.use('/api/business', businessReportRoutes);
+app.use('/api/business/campaigns', businessCampaignRoutes);
+app.use('/api/business/automations', businessAutomationRoutes);
+app.use('/api/business', businessSettingsRoutes);
+app.use('/api/conversations', conversationRoutes);
+app.use('/api/wallet', businessWallet);
+app.use('/api/integrations/smartping', smartpingRoutes);
+app.use('/api', dataRoutes);
+app.use('/api', (_req, res) => res.status(404).json({ message: 'API route not found.' }));
+app.use((error, _req, res, _next) => {
+  console.error('API request failed:', error.name || 'Error', error.code || error.status || 500);
+  if (error.code === 11000) return res.status(409).json({ message: 'A record with these unique details already exists.' });
+  if (error.name === 'ValidationError') return res.status(400).json({ message: Object.values(error.errors).map(field => field.message).join(' ') });
+  if (error.name === 'CastError') return res.status(400).json({ message: 'Invalid record ID or field value.' });
+  res.status(error.status || 500).json({ message: process.env.NODE_ENV === 'production' && !(error instanceof SmartpingError) ? 'An unexpected error occurred.' : error.message });
+});
+
+export default app;
